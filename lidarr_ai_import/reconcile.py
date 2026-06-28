@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import logging
+import time
 from collections import defaultdict
 
 from .ai.base import AIProvider
@@ -52,6 +53,10 @@ class MissingReconciler:
                 rows.extend(self._handle_artist(artist_id, missing_tracks))
             except Exception:
                 log.exception("Reconciler: failed handling artist %s", artist_id)
+            # Two Lidarr calls per artist, back-to-back with no pacing, was enough
+            # to push an already-busy Lidarr instance into read timeouts - this
+            # isn't time-critical, so spread the load out instead of hammering it.
+            time.sleep(0.5)
         return rows
 
     def _handle_artist(self, artist_id: int, missing_tracks: list[dict]) -> list[dict]:

@@ -22,7 +22,7 @@ class LidarrClient:
     Lidarr version - whatever shape Lidarr handed us is the shape it gets back.
     """
 
-    def __init__(self, base_url: str, api_key: str, timeout: float = 30.0):
+    def __init__(self, base_url: str, api_key: str, timeout: float = 60.0):
         self.base_url = base_url.rstrip("/")
         self.timeout = timeout
         self.session = requests.Session()
