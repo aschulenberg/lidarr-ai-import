@@ -21,14 +21,25 @@ services:
     container_name: lidarr-ai-import
     env_file: /mnt/user/appdata/lidarr-ai-import/.env
     environment:
-      # Unraid containers are usually NOT on a shared custom network with each
-      # other by default, so address Lidarr via the Unraid host's LAN IP and
-      # its published WebUI port rather than a container name. Matches this
-      # user's existing LAN-only-HTTP preference - nothing here needs a
-      # reverse proxy, since this service has no inbound port of its own.
+      # Joining Lidarr's network means you can address it by container name
+      # instead of the host LAN IP, e.g. http://lidarr:8686 - replace
+      # <UNRAID-IP> with that if you'd rather use the name (confirm Lidarr's
+      # actual container_name first; it's case-sensitive). The LAN IP keeps
+      # working fine either way, this is just optional tidiness.
       - LIDARR_URL=http://<UNRAID-IP>:8686
     volumes:
       - /mnt/user/<YOUR-MUSIC-SHARE>:/music        # <- match Lidarr's container path exactly
       - /mnt/user/<YOUR-DOWNLOADS-SHARE>:/downloads # <- match Lidarr's container path exactly
       - /mnt/user/appdata/lidarr-ai-import/data:/app/data
+    networks:
+      - custom-bridge
     restart: unless-stopped
+
+networks:
+  custom-bridge:
+    # Must already exist (this is the network your Lidarr container is on) -
+    # `external: true` means compose joins it rather than trying to create
+    # it. Confirm the exact name with `docker network ls` on Unraid; if
+    # yours differs from "custom-bridge", change both lines below to match.
+    external: true
+    name: custom-bridge
