@@ -1,0 +1,34 @@
+# For Unraid's "Compose Manager" plugin (Community Apps -> search "Compose Manager").
+#
+# Setup:
+#   1. Install the Compose Manager plugin if you don't have it.
+#   2. SSH/terminal into Unraid and clone this repo onto the array:
+#        git clone https://github.com/aschulenberg/lidarr-ai-import /mnt/user/appdata/lidarr-ai-import/repo
+#   3. Copy .env.example to /mnt/user/appdata/lidarr-ai-import/.env and fill it in.
+#   4. In Compose Manager, add a new stack pointing at
+#      /mnt/user/appdata/lidarr-ai-import/repo, using this file.
+#   5. Edit the two placeholders below, then bring the stack up.
+#
+# IMPORTANT - path matching: the music/downloads paths MUST be the exact same
+# container-side paths your Lidarr container uses (check Lidarr's Docker
+# template -> "Path" mappings in the Unraid UI). Manual-import file paths come
+# back from Lidarr's own API as Lidarr's container sees them, so this
+# container needs to resolve the identical path or tag-reading will fail.
+# Example: if Lidarr maps /mnt/user/Music -> /music, mount the same pair here.
+services:
+  lidarr-ai-import:
+    build: /mnt/user/appdata/lidarr-ai-import/repo
+    container_name: lidarr-ai-import
+    env_file: /mnt/user/appdata/lidarr-ai-import/.env
+    environment:
+      # Unraid containers are usually NOT on a shared custom network with each
+      # other by default, so address Lidarr via the Unraid host's LAN IP and
+      # its published WebUI port rather than a container name. Matches this
+      # user's existing LAN-only-HTTP preference - nothing here needs a
+      # reverse proxy, since this service has no inbound port of its own.
+      - LIDARR_URL=http://<UNRAID-IP>:8686
+    volumes:
+      - /mnt/user/<YOUR-MUSIC-SHARE>:/music        # <- match Lidarr's container path exactly
+      - /mnt/user/<YOUR-DOWNLOADS-SHARE>:/downloads # <- match Lidarr's container path exactly
+      - /mnt/user/appdata/lidarr-ai-import/data:/app/data
+    restart: unless-stopped

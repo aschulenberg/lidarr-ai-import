@@ -66,6 +66,40 @@ SQLite log (`DB_PATH`) so you can audit what happened and why.
 6. Review `data/lidarr_ai_import.db` (or the log output) for a while. When you're
    happy with the decisions it's making, set `DRY_RUN=false`.
 
+## Running on Unraid
+
+Use `docker-compose.unraid.yml` with the **Compose Manager** plugin (Community
+Apps) rather than Unraid's single-container "Add Container" form - this is a
+build-from-source image, not something pulled from a registry.
+
+1. Install Compose Manager if you don't have it.
+2. Clone the repo onto the array and set up `.env` under appdata, so the CA
+   Backup/Restore plugin covers it like everything else there:
+   ```bash
+   git clone https://github.com/aschulenberg/lidarr-ai-import /mnt/user/appdata/lidarr-ai-import/repo
+   cp /mnt/user/appdata/lidarr-ai-import/repo/.env.example /mnt/user/appdata/lidarr-ai-import/.env
+   ```
+3. Add a new stack in Compose Manager pointing at that repo folder, using
+   `docker-compose.unraid.yml`.
+4. Fill in the two placeholders in that file:
+   - `LIDARR_URL` - your Unraid LAN IP and Lidarr's WebUI port (e.g.
+     `http://192.168.1.50:8686`). Containers on Unraid usually aren't on a
+     shared Docker network by default, so the host IP is more reliable than a
+     container name. This also means there's nothing to put behind a reverse
+     proxy here - the service only makes outbound calls, it has no inbound
+     port of its own.
+   - The `/music` and `/downloads` volume lines - **must match Lidarr's own
+     container paths exactly**, not just the same host share. Check Lidarr's
+     Docker template → Path mappings to see what it actually uses. Manual-import
+     file paths come back from Lidarr's API as Lidarr's container sees them, so
+     this container has to resolve the identical path to read file tags.
+     Example: if Lidarr's template maps `/mnt/user/Music` → `/music`, mount
+     that same pair here too.
+5. If you spin down array disks, consider raising `RESOLVER_POLL_SECONDS` /
+   `RECONCILER_POLL_SECONDS` in `.env` beyond the defaults (5 min / 1 hour) -
+   nothing here is latency-sensitive, and less frequent polling means fewer
+   unnecessary spin-ups.
+
 ## Safety notes
 
 - Dry-run by default. Nothing touches your library until you turn it off.
