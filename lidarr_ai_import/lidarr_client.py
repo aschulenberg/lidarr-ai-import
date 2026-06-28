@@ -88,18 +88,32 @@ class LidarrClient:
                 return
             page += 1
 
+    # ---- queue ------------------------------------------------------------------------
+
+    def iter_queue(self, page_size: int = 100):
+        page = 1
+        while True:
+            data = self._request(
+                "GET", "queue", params={"page": page, "pageSize": page_size}
+            )
+            records = (data or {}).get("records", [])
+            if not records:
+                return
+            yield from records
+            total_records = (data or {}).get("totalRecords", 0)
+            if page * page_size >= total_records:
+                return
+            page += 1
+
     # ---- manual import ---------------------------------------------------------------
 
-    def get_root_folders(self) -> list[dict]:
-        return self._request("GET", "rootfolder") or []
-
     def get_manual_import(self, folder: str, download_id: str | None = None) -> list[dict]:
-        """Mirrors the 'Unmapped Files' / per-download manual-import view in the UI.
+        """`folder` is required - Lidarr's endpoint throws a 500 ("path" can't be
+        empty) if it's omitted, it does NOT default to scanning everything.
 
-        `folder` is required - Lidarr's endpoint throws a 500 ("path" can't be
-        empty) if it's omitted, it does NOT default to scanning everything. To
-        cover the whole library, call this once per root folder (see
-        get_root_folders) rather than relying on a no-args broad scan.
+        Scope this to one queue item's outputPath at a time (see iter_queue),
+        not a whole root/library folder - scanning an entire library on every
+        poll is expensive enough on slower (e.g. NAS/array) storage to time out.
         """
         params: dict[str, Any] = {"folder": folder}
         if download_id:

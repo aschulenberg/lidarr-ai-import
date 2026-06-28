@@ -28,14 +28,21 @@ class StuckImportResolver:
 
     def run_once(self) -> None:
         items: list[dict] = []
-        for root_folder in self.lidarr.get_root_folders():
-            path = root_folder.get("path")
-            if not path:
+        for queue_item in self.lidarr.iter_queue():
+            output_path = queue_item.get("outputPath")
+            # statusMessages is how Lidarr flags "something's wrong with this
+            # download" across every state name a given version might use -
+            # cheaper and more robust than matching specific status enums.
+            if not output_path or not queue_item.get("statusMessages"):
                 continue
             try:
-                items.extend(self.lidarr.get_manual_import(folder=path))
+                items.extend(
+                    self.lidarr.get_manual_import(
+                        folder=output_path, download_id=queue_item.get("downloadId")
+                    )
+                )
             except Exception:
-                log.exception("Resolver: failed scanning root folder %s", path)
+                log.exception("Resolver: failed scanning queue item %s", output_path)
 
         log.info("Resolver: %d item(s) pending manual import", len(items))
         for item in items:
