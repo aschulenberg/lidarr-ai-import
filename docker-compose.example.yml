@@ -1,0 +1,29 @@
+# Example of adding this as a sidecar to an existing Lidarr compose stack.
+# The key requirement: it must see the exact same paths Lidarr does, so mount
+# whatever volumes your lidarr service mounts for /music (and downloads, if
+# your manual-import items can still be sitting in a download client folder).
+services:
+  lidarr:
+    image: lscr.io/linuxserver/lidarr:latest
+    container_name: lidarr
+    ports:
+      - "8686:8686"
+    volumes:
+      - ./lidarr-config:/config
+      - /path/to/music:/music
+      - /path/to/downloads:/downloads
+    restart: unless-stopped
+
+  lidarr-ai-import:
+    build: .
+    container_name: lidarr-ai-import
+    env_file: .env
+    environment:
+      - LIDARR_URL=http://lidarr:8686
+    volumes:
+      - /path/to/music:/music
+      - /path/to/downloads:/downloads
+      - ./data:/app/data
+    depends_on:
+      - lidarr
+    restart: unless-stopped
