@@ -27,7 +27,16 @@ class StuckImportResolver:
         self.config = config
 
     def run_once(self) -> None:
-        items = self.lidarr.get_manual_import()
+        items: list[dict] = []
+        for root_folder in self.lidarr.get_root_folders():
+            path = root_folder.get("path")
+            if not path:
+                continue
+            try:
+                items.extend(self.lidarr.get_manual_import(folder=path))
+            except Exception:
+                log.exception("Resolver: failed scanning root folder %s", path)
+
         log.info("Resolver: %d item(s) pending manual import", len(items))
         for item in items:
             try:

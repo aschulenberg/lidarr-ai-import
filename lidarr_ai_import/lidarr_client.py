@@ -90,18 +90,18 @@ class LidarrClient:
 
     # ---- manual import ---------------------------------------------------------------
 
-    def get_manual_import(
-        self, folder: str | None = None, download_id: str | None = None
-    ) -> list[dict]:
+    def get_root_folders(self) -> list[dict]:
+        return self._request("GET", "rootfolder") or []
+
+    def get_manual_import(self, folder: str, download_id: str | None = None) -> list[dict]:
         """Mirrors the 'Unmapped Files' / per-download manual-import view in the UI.
 
-        Called with no args, Lidarr scans its root/library folders for anything it
-        couldn't automatically map to a track - this is the broadest net for catching
-        "auto importer failed" in all its forms, not just a single fresh download.
+        `folder` is required - Lidarr's endpoint throws a 500 ("path" can't be
+        empty) if it's omitted, it does NOT default to scanning everything. To
+        cover the whole library, call this once per root folder (see
+        get_root_folders) rather than relying on a no-args broad scan.
         """
-        params: dict[str, Any] = {}
-        if folder:
-            params["folder"] = folder
+        params: dict[str, Any] = {"folder": folder}
         if download_id:
             params["downloadId"] = download_id
         return self._request("GET", "manualimport", params=params) or []
